@@ -1,0 +1,68 @@
+---
+- name: "Installing Java, Apache2, php7.2 packages"
+  apt:
+    name:
+      - apache2
+      - php7.2
+      - php7.2-mysql
+      - php7.2-curl
+      - php7.2-intl
+      - php7.2-redis
+      - php-dev
+      - libmcrypt-dev
+      - php-pear
+      - openssl
+      - zip
+      - openjdk-11-jdk
+    state: present
+
+- name: "Updating php conf files"
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  with_items:
+    - {src: 'php.ini.j2', dest: '/etc/php/7.2/apache2/php.ini'}
+    - {src: 'cli-php.ini.j2', dest: '/etc/php/7.2/cli/php.ini'}
+    - {src: 'mycrypt.j2', dest: '/etc/php/7.2/mods-available/mcrypt.ini'}
+
+- name: "Enabling php mcrypt module"
+  shell: |
+    pecl channel-update pecl.php.net
+    echo "\n\n\n\n\n\n\n\n\n\n" | pecl install mcrypt-1.0.1
+    phpenmod mcrypt
+
+- name: "Updating apache conf files"
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  with_items:
+    - {src: 'apache.j2', dest: '/etc/apache2/apache2.conf'}
+    - {src: 'security.j2', dest: '/etc/apache2/conf-available/security.conf'}
+
+- name: "Enabling apache ssl modules"
+  apache2_module: name=ssl state=present
+
+- name: "Enabling apache headers modules"
+  apache2_module: name=headers state=present
+
+- name: "Enabling apache default-ssl"
+  shell: a2ensite default-ssl
+
+- name: Check that our config is valid
+  command: apache2ctl configtest
+
+
+- name: 'Apache2  - Restarting/Enabling'
+  service:
+    name: apache2
+    state: restarted
+    enabled: true
+

@@ -1,0 +1,4 @@
+---
+# tasks file for api-server
+- include_tasks: nodejs_install.yml
+- include_tasks: java-apache-php_install.yml
